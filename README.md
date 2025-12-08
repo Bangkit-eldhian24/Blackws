@@ -5,10 +5,10 @@
 ## NOTE : "THIS IS JUST AN INSTALLER FOR WEBSEC"
 I created this tool as a pentest and ethical hacking installer for the Arch Linux distribution. It focuses on web security and also ignores tools with problematic/invalid PGP keys from the official BlackArch maintainer.
 
-## ORIGINAL AND THANKS FOR BLACKARCH
-[BLACKARCH](https://blackarch.org/index.html)
+ORIGINAL AND THANKS FOR [BLACKARCH](https://blackarch.org/index.html)
 
-## How To Use
+## **installing**
+
 ```
 https://github.com/Bangkit-eldhian24/Blackws.git
 cd Blackws
@@ -19,6 +19,22 @@ mv Blackws /usr/local/bin/Blackws
 all in one
 ```
 Blackws "blackarch-webapp blackarch-recon blackarch-scanner blackarch-fuzzer blackarch-code-audit blackarch-proxy blackarch-dos blackarch-exploitation blackarch-cracker blackarch-fingerprint blackarch-sniffer blackarch-database"
+```
+list all of available tools
+```
+sudo pacman -Sgg | grep blackarch | cut -d' ' -f2 | sort -u
+```
+To install a category of tools
+```
+sudo pacman -S blackarch-<category>
+```
+To see the blackarch categories
+```
+sudo pacman -Sg | grep blackarch
+```
+To search for a specific package
+```
+pacman -Ss <package_name>
 ```
 
 ## LIST
@@ -57,8 +73,10 @@ u can change var in this code like how to show dir list in case, example
 PACKAGE_GROUP=$1
 echo "  $0 blackarch-webapp"
 ```
+HYPRLAND VIEW
 <img width="923" height="1058" alt="swappy-20251208_162051" src="https://github.com/user-attachments/assets/95aa1208-1fde-43ef-a039-edf5e3d163ec" />
 
-
+NORMAL VIEW
+<img width="729" height="601" alt="Screenshot_20251208_163856" src="https://github.com/user-attachments/assets/9514ccd3-c444-45fb-b059-c1597ecc9ec9" />
 
 
