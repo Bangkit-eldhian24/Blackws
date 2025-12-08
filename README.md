@@ -14,7 +14,6 @@ https://github.com/Bangkit-eldhian24/Blackws.git
 cd Blackws
 sudo chmod +x Blackws
 mv Blackws /usr/local/bin/Blackws
-
 ```
 all in one
 ```
