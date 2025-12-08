@@ -1,1 +1,190 @@
-akak
+#!/bin/bash
+
+# BlackWS - WebSec Installer
+# Auto-detect & Skip Error Packages
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+NC='\033[0m' # No Color
+
+# ASCII Art Banner
+echo -e "${WHITE} dMMMMb  dMP     .aMMMb  .aMMMb  dMP dMP ${RED} dMP     dMP .dMMMb ${NC}"
+echo -e "${WHITE}dMP.dMP dMP     dMP\"dMP dMP\"VMP dMP.dMP ${RED}dMP dMP dMP dMP\" VP${NC}"
+echo -e "${WHITE}dMMMMK\" dMP     dMMMMMP dMP     dMMMMK\" ${RED}dMP dMP dMP VMMMb  ${NC}"
+echo -e "${WHITE}dMP.aMF dMP     dMP dMP dMP.aMP dMP.aMP ${RED}dMP.dMP.dMP dP .dMP${NC}"
+echo -e "${WHITE}dMMMMP\" dMMMMMP dMP dMP VMMMP\" dMP dMP ${RED} VMMMPVMMP  VMMMP\" ${NC}"
+echo ""
+echo -e "${GREEN}[info]${NC} ${WHITE}websec installer${NC}, ${RED}nightly${NC}"
+echo -e "${CYAN}[author] Bangkiteldhian as ardx${NC}"
+echo ""
+
+# Fungsi untuk menampilkan bantuan
+show_help() {
+    echo -e "${GREEN}Usage:${NC}"
+    echo "  blackws <blackarch-group>"
+    echo ""
+    echo -e "${GREEN}Examples:${NC}"
+    echo "  blackws blackarch-webapp"
+    echo "  blackws blackarch-recon"
+    echo "  blackws blackarch-exploitation"
+    echo ""
+    echo -e "${GREEN}Available groups (WebSec Focus):${NC}"
+    echo "  blackarch-webapp        - Web application tools"
+    echo "  blackarch-recon         - Reconnaissance tools"
+    echo "  blackarch-scanner       - Scanner tools"
+    echo "  blackarch-fuzzer        - Fuzzing tools"
+    echo "  blackarch-code-audit    - Code auditing tools"
+    echo "  blackarch-proxy         - Proxy tools"
+    echo "  blackarch-dos           - DoS testing tools"
+    echo "  blackarch-exploitation  - Exploitation tools"
+    echo "  blackarch-cracker       - Password cracking tools"
+    echo "  blackarch-fingerprint   - Fingerprinting tools"
+    echo "  blackarch-sniffer       - Network sniffing tools"
+    echo "  blackarch-database      - Database tools"
+    echo ""
+    echo -e "${BLUE}Tip:${NC} You can also install multiple groups at once"
+    echo "  Example: $0 'blackarch-webapp blackarch-recon blackarch-scanner'"
+    echo ""
+}
+
+# Cek argumen
+if [ $# -eq 0 ]; then
+    echo -e "${RED}[!] Error: No package group specified${NC}"
+    echo ""
+    show_help
+    exit 1
+fi
+
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+    show_help
+    exit 0
+fi
+
+PACKAGE_GROUP=$1
+TEMP_LOG="/tmp/blackarch_install_$(date +%s).log"
+ERROR_PACKAGES=()
+
+echo -e "${YELLOW}[*] Target: ${PACKAGE_GROUP}${NC}"
+echo -e "${YELLOW}[*] Checking package integrity...${NC}"
+echo ""
+
+# Fungsi untuk ekstrak nama paket dari error message
+extract_error_packages() {
+    local log_file=$1
+    grep "^error:" "$log_file" | grep "signature from" | awk '{print $2}' | sed 's/://' | sort -u
+}
+
+# First attempt - dry run untuk deteksi error
+echo -e "${BLUE}[1/3] Running package check...${NC}"
+sudo pacman -S "$PACKAGE_GROUP" --noconfirm --needed 2>&1 | tee "$TEMP_LOG"
+
+# Cek apakah ada error
+if grep -q "error:.*signature from.*is unknown trust" "$TEMP_LOG"; then
+    echo ""
+    echo -e "${RED}# Problematic Packages Detected${NC}"
+    echo ""
+    
+    # Ekstrak paket bermasalah
+    while IFS= read -r pkg; do
+        if [ -n "$pkg" ]; then
+            ERROR_PACKAGES+=("$pkg")
+        fi
+    done < <(extract_error_packages "$TEMP_LOG")
+    
+    if [ ${#ERROR_PACKAGES[@]} -gt 0 ]; then
+        for pkg in "${ERROR_PACKAGES[@]}"; do
+            echo -e "${RED}  ✗ $pkg${NC}"
+        done
+        echo ""
+        
+        # Tampilkan opsi
+        echo -e "${YELLOW}Options:${NC}"
+        echo -e "  ${GREEN}1)${NC} Continue installation (skip error packages)"
+        echo -e "  ${GREEN}2)${NC} Try to fix signatures and retry"
+        echo -e "  ${GREEN}3)${NC} Cancel installation"
+        echo ""
+        read -p "Choose option [1-3]: " choice
+        
+        case $choice in
+            1)
+                # Install dengan ignore error packages
+                IGNORE_LIST=$(IFS=,; echo "${ERROR_PACKAGES[*]}")
+                echo ""
+                echo -e "${BLUE}[2/3] Installing ${PACKAGE_GROUP} (ignoring ${#ERROR_PACKAGES[@]} packages)...${NC}"
+                echo -e "${YELLOW}[*] Ignored packages: $IGNORE_LIST${NC}"
+                echo ""
+                
+                sudo pacman -S "$PACKAGE_GROUP" --ignore "$IGNORE_LIST" --noconfirm --needed
+                
+                if [ $? -eq 0 ]; then
+                    echo ""
+                    echo -e "${GREEN}# Installation completed successfully!${NC}"
+                    echo ""
+                    echo -e "${YELLOW}Skipped packages (can be installed manually later):${NC}"
+                    for pkg in "${ERROR_PACKAGES[@]}"; do
+                        echo -e "  ${YELLOW}• $pkg${NC}"
+                    done
+                    echo ""
+                    echo -e "${BLUE}To install skipped packages later with signature bypass:${NC}"
+                    echo -e "  ${YELLOW}sudo pacman -S <package-name> --needed --overwrite='*'${NC}"
+                else
+                    echo ""
+                    echo -e "${RED}[!] Installation failed. Check errors above.${NC}"
+                    exit 1
+                fi
+                ;;
+            2)
+                # Try to fix signatures
+                echo ""
+                echo -e "${BLUE}[2/3] Attempting to fix signatures...${NC}"
+                echo -e "${YELLOW}[*] Refreshing keyring...${NC}"
+                
+                sudo pacman-key --refresh-keys
+                sudo pacman-key --populate blackarch
+                
+                echo ""
+                echo -e "${YELLOW}[*] Retrying installation...${NC}"
+                sudo pacman -S "$PACKAGE_GROUP" --noconfirm --needed
+                
+                if [ $? -eq 0 ]; then
+                    echo ""
+                    echo -e "${GREEN}# Installation completed successfully!${NC}"
+                else
+                    echo ""
+                    echo -e "${RED}[!] Still failed. Signature issues persist.${NC}"
+                    echo -e "${YELLOW}[*] Recommend using option 1 (skip error packages)${NC}"
+                    exit 1
+                fi
+                ;;
+            3)
+                echo ""
+                echo -e "${YELLOW}Installation cancelled.${NC}"
+                rm -f "$TEMP_LOG"
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}Invalid option. Cancelled.${NC}"
+                rm -f "$TEMP_LOG"
+                exit 1
+                ;;
+        esac
+    fi
+else
+    # Tidak ada error, instalasi berhasil
+    echo ""
+    echo -e "${GREEN}# ✓ Installation completed successfully!${NC}"
+    echo -e "${GREEN}# No signature errors detected${NC}"
+fi
+
+# Cleanup
+echo ""
+echo -e "${BLUE}[3/3] Cleaning up...${NC}"
+rm -f "$TEMP_LOG"
+
+echo ""
+echo -e "${GREEN}Done! Enjoy your BlackArch tools.${NC}"
+echo ""
