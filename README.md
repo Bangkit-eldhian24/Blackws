@@ -10,5 +10,28 @@ I created this tool as a pentest and ethical hacking installer for the Arch Linu
 
 ## How To Use
 ```
+https://github.com/Bangkit-eldhian24/Blackws.git
+cd Blackws
+sudo chmod +x Blackws
+mv Blackws /usr/local/bin/Blackws
 
 ```
+all in one
+```
+Blackws "blackarch-webapp blackarch-recon blackarch-scanner blackarch-fuzzer blackarch-code-audit blackarch-proxy blackarch-dos blackarch-exploitation blackarch-cracker blackarch-fingerprint blackarch-sniffer blackarch-database"
+```
+
+## LIST
+blackarch-webapp       → Web app testing (SQLMap, Nikto, etc)
+blackarch-recon        → Information gathering (Nmap, Amass, etc)
+blackarch-scanner      → Vulnerability scanners (OpenVAS, etc)
+blackarch-fuzzer       → Fuzzing tools (AFL, Wfuzz, etc)
+blackarch-code-audit   → Source code analysis
+blackarch-proxy        → Proxy tools (Burp Suite, ZAP, etc)
+blackarch-dos          → DoS testing tools
+blackarch-exploitation → Exploit frameworks (Metasploit, etc)
+blackarch-cracker      → Password crackers (John, Hashcat, etc)
+blackarch-fingerprint  → Service fingerprinting
+blackarch-sniffer      → Network sniffers (Wireshark, tcpdump, etc)
+blackarch-database     → Database tools (SQLMap, etc)
+
