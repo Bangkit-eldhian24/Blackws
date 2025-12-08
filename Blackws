@@ -47,7 +47,7 @@ show_help() {
     echo "  blackarch-database      - Database tools"
     echo ""
     echo -e "${BLUE}Tip:${NC} You can also install multiple groups at once"
-    echo "  Example: $0 'blackarch-webapp blackarch-recon blackarch-scanner'"
+    echo "  Example: blackws 'blackarch-webapp blackarch-recon blackarch-scanner'"
     echo ""
 }
 
