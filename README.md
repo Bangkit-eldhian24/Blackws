@@ -1,8 +1,10 @@
 
 # <summary><strong>BLACKARCH INSTALLER </strong></summary>
 
-## NOTE : "THIS IS JUST AN INSTALLER FOR WEBSEC"
+## NOTE : "THIS IS JUST AN INSTALLER FOR ETHICAL"
 I created this tool as a pentest and ethical hacking installer for the Arch Linux distribution. It focuses on security and also ignores tools with problematic/invalid PGP keys from the official BlackArch maintainer.
+I USED TO FOR MY OWN ARCH DISTRIBUTION, SO YEAH..
+
 
 INSPIRED AND THANKS FOR [BLACKARCH](https://blackarch.org/index.html)
 
