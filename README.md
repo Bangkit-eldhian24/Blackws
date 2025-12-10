@@ -7,6 +7,9 @@ I created this tool as a pentest and ethical hacking installer for the Arch Linu
 
 ORIGINAL AND THANKS FOR [BLACKARCH](https://blackarch.org/index.html)
 
+<details>
+  <summary>BLACKWS WEBSEC</summary>
+
 ## **installing**
 
 ```
@@ -77,5 +80,7 @@ HYPRLAND VIEW
 
 NORMAL VIEW
 <img width="729" height="601" alt="Screenshot_20251208_163856" src="https://github.com/user-attachments/assets/9514ccd3-c444-45fb-b059-c1597ecc9ec9" />
+
+</details>
 
 
