@@ -1,14 +1,17 @@
-<img width="500" height="500" alt="BLACKWS" src="https://github.com/user-attachments/assets/776e5394-3ac9-4c65-afe5-c8eb37b9ea46" />
+
+# <summary><strong>BLACKARCH INSTALLER </strong></summary>
+
+## NOTE : "THIS IS JUST AN INSTALLER FOR WEBSEC"
+I created this tool as a pentest and ethical hacking installer for the Arch Linux distribution. It focuses on security and also ignores tools with problematic/invalid PGP keys from the official BlackArch maintainer.
+
+INSPIRED AND THANKS FOR [BLACKARCH](https://blackarch.org/index.html)
+
+<details>
+  <summary>BLACKWS WEBSEC installer</summary>
 
 # <summary><strong>BLACKWS ( BLACKARCH WEB SECURITY TOOLS ) </strong></summary>
 
-## NOTE : "THIS IS JUST AN INSTALLER FOR WEBSEC"
-I created this tool as a pentest and ethical hacking installer for the Arch Linux distribution. It focuses on web security and also ignores tools with problematic/invalid PGP keys from the official BlackArch maintainer.
-
-ORIGINAL AND THANKS FOR [BLACKARCH](https://blackarch.org/index.html)
-
-<details>
-  <summary>BLACKWS WEBSEC</summary>
+<img width="500" height="500" alt="BLACKWS" src="https://github.com/user-attachments/assets/776e5394-3ac9-4c65-afe5-c8eb37b9ea46" />
 
 ## **installing**
 
@@ -80,6 +83,13 @@ HYPRLAND VIEW
 
 NORMAL VIEW
 <img width="729" height="601" alt="Screenshot_20251208_163856" src="https://github.com/user-attachments/assets/9514ccd3-c444-45fb-b059-c1597ecc9ec9" />
+
+</details>
+
+<details>
+  <summary>BAITXploit installer</summary>
+
+Isi yang disembunyikan di sini.
 
 </details>
 
