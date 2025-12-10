@@ -19,13 +19,13 @@ INSPIRED AND THANKS FOR [BLACKARCH](https://blackarch.org/index.html)
 
 ```
 https://github.com/Bangkit-eldhian24/Blackws.git
-cd Blackws
-sudo chmod +x Blackws
-mv Blackws /usr/local/bin/Blackws
+cd Blackws/blackws
+sudo chmod +x blackws.sh
+mv Blackws /usr/local/bin/blackws.sh
 ```
 all in one
 ```
-Blackws "blackarch-webapp blackarch-recon blackarch-scanner blackarch-fuzzer blackarch-code-audit blackarch-proxy blackarch-dos blackarch-exploitation blackarch-cracker blackarch-fingerprint blackarch-sniffer blackarch-database"
+blackws "blackarch-webapp blackarch-recon blackarch-scanner blackarch-fuzzer blackarch-code-audit blackarch-proxy blackarch-dos blackarch-exploitation blackarch-cracker blackarch-fingerprint blackarch-sniffer blackarch-database"
 ```
 list all of available tools
 ```
@@ -90,12 +90,63 @@ NORMAL VIEW
 
 </details>
 
-
+============================================
 
 <details>
   <summary>BAITXploit installer</summary>
 
-Isi yang disembunyikan di sini.
+# <summary><strong>BAITX ( blackarch installer tools )</strong></summary>
+
+## **installing**
+
+```
+https://github.com/Bangkit-eldhian24/Blackws.git
+cd Blackws/baitx
+sudo chmod +x BAITX.sh
+mv Blackws /usr/local/bin/BAITX.sh
+```
+or
+```
+sudo install -m 755 baitx.sh /usr/local/bin/baitx
+```
+
+## LIST
+
+<img width="749" height="1017" alt="swappy-20251211_014615" src="https://github.com/user-attachments/assets/a75b3766-a362-4a4c-ba65-8d984c55d601" />
+
+
+## ETC / TROUBLE SHOOTING
+
+```
+# FIX 1: used file, no array
+pacman -Sgq "$category" > "$pkg_file" 
+
+# FIX 2: Batch install
+current_batch=()
+if [ ${#current_batch[@]} -ge 5 ]; then
+    sudo pacman -S "${current_batch[@]}"
+    current_batch=()
+    sudo pacman -Sc --noconfirm  # ← Clear cache!
+fi
+```
+```
+sudo pacman -Sc --noconfirm
+```
+
+or read [BLACKARCH OFFICIAL](https://blackarch.org/downloads.html)
+u can change var in this code like how to show dir list in case, example
+```
+PACKAGE_GROUP=$1
+echo "  $0 blackarch-webapp"
+```
+TERMINAL VIEW
+<img width="1807" height="1015" alt="swappy-20251211_015231" src="https://github.com/user-attachments/assets/06212003-1afc-48ff-93d2-ac7716d84de9" />
+
+<img width="1920" height="1080" alt="20251211005541" src="https://github.com/user-attachments/assets/c4216815-7370-4b3d-b6c5-7e4fb7faf5d3" />
+
+<img width="499" height="969" alt="swappy-20251211_015817" src="https://github.com/user-attachments/assets/f287631f-8f4f-4cc1-8ee1-61f01ac780db" />
+
+
 
 </details>
 
