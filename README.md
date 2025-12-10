@@ -84,9 +84,13 @@ HYPRLAND VIEW
 <img width="923" height="1058" alt="swappy-20251208_162051" src="https://github.com/user-attachments/assets/95aa1208-1fde-43ef-a039-edf5e3d163ec" />
 
 NORMAL VIEW
+
 <img width="729" height="601" alt="Screenshot_20251208_163856" src="https://github.com/user-attachments/assets/9514ccd3-c444-45fb-b059-c1597ecc9ec9" />
 
+
 </details>
+
+
 
 <details>
   <summary>BAITXploit installer</summary>
