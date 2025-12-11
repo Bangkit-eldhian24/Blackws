@@ -133,12 +133,6 @@ fi
 sudo pacman -Sc --noconfirm
 ```
 
-or read [BLACKARCH OFFICIAL](https://blackarch.org/downloads.html)
-u can change var in this code like how to show dir list in case, example
-```
-PACKAGE_GROUP=$1
-echo "  $0 blackarch-webapp"
-```
 TERMINAL VIEW
 <img width="1807" height="1015" alt="swappy-20251211_015231" src="https://github.com/user-attachments/assets/06212003-1afc-48ff-93d2-ac7716d84de9" />
 
