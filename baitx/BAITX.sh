@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# BAITX v2.5 - BlackArch Installer Tools eXecution (Hardened)
-# Hardened version with security patches and error handling improvements
-
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -11,6 +8,10 @@ CYAN='\033[0;36m'
 WHITE='\033[1;37m'
 MAGENTA='\033[0;35m'
 NC='\033[0m'
+
+# Global checkpoint file for recovery
+CHECKPOINT_FILE="/tmp/baitx_checkpoint_$.dat"
+LOG_FILE="/var/log/baitx_install.log"
 
 # ASCII Art Banner
 echo -e "${WHITE}  ▄▄▄▄    ▄▄▄       ██▓▄▄▄█████▓${RED}▒██   ██▒${NC}"
@@ -24,15 +25,40 @@ echo -e "${WHITE} ░    ░   ░   ▒    ▒ ░  ░       ${RED}░    ░ 
 echo -e "${WHITE} ░            ░  ░ ░            ${RED}░    ░  ${NC}"
 echo -e "${WHITE}      ░                                 ${NC}"
 echo ""
-echo -e "${GREEN}[info]${NC} ${WHITE}blackarch installer tools${NC}, ${RED}execution v2.5 (hardened)${NC}"
+echo -e "${GREEN}[info]${NC} ${WHITE}blackarch installer tools${NC}, ${RED}execution v2.6 (enterprise)${NC}"
 echo -e "${CYAN}[author] Bangkiteldhian as ardx${NC}"
 echo ""
+
+# Cleanup handler
+cleanup_on_exit() {
+    echo ""
+    echo -e "${YELLOW}[*] Cleaning up...${NC}"
+    rm -f /tmp/baitx_*.tmp
+    
+    # Final cache cleanup - only once at the end
+    if [ "$1" == "complete" ]; then
+        echo -e "${YELLOW}[*] Final cache cleanup...${NC}"
+        sudo pacman -Scc --noconfirm &>/dev/null
+    fi
+}
+
+trap 'cleanup_on_exit' EXIT
 
 # Pre-flight Environment Check
 preflight_check() {
     echo -e "${YELLOW}[*] Running pre-flight checks...${NC}"
     
     local issues=0
+    
+    # PATCH 1: Check pacman lock
+    if [ -f /var/lib/pacman/db.lck ]; then
+        echo -e "${RED}[!] CRITICAL: Pacman database is locked${NC}"
+        echo -e "${YELLOW}[*] Another package operation is running or crashed${NC}"
+        echo -e "${YELLOW}[*] Remove lock: sudo rm /var/lib/pacman/db.lck${NC}"
+        return 1
+    else
+        echo -e "${GREEN}[+] Pacman lock: Clear${NC}"
+    fi
     
     # Check free space
     local free_space=$(df -BG / | tail -1 | awk '{print $4}' | sed 's/G//')
@@ -346,7 +372,7 @@ show_main_menu() {
     echo ""
 }
 
-# Option 1: Install All
+# Option 1: Install All (with checkpoint recovery)
 install_all() {
     echo ""
     echo -e "${RED}╔════════════════════════════════════════════╗${NC}"
@@ -365,15 +391,32 @@ install_all() {
     echo ""
     count_available_tools || return 1
     
-    read -p "Continue? [y/N]: " confirm
-    if [[ ! $confirm =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}Cancelled.${NC}"
-        return
+    # Check for existing checkpoint
+    local start_from=0
+    if [ -f "$CHECKPOINT_FILE" ]; then
+        start_from=$(cat "$CHECKPOINT_FILE")
+        echo -e "${YELLOW}[!] Found checkpoint at category #${start_from}${NC}"
+        read -p "Resume from checkpoint? [Y/n]: " resume
+        if [[ ! $resume =~ ^[Nn]$ ]]; then
+            echo -e "${GREEN}[+] Resuming from category #${start_from}${NC}"
+        else
+            start_from=0
+            rm -f "$CHECKPOINT_FILE"
+        fi
+    fi
+    
+    if [ $start_from -eq 0 ]; then
+        read -p "Continue? [y/N]: " confirm
+        if [[ ! $confirm =~ ^[Yy]$ ]]; then
+            echo -e "${YELLOW}Cancelled.${NC}"
+            return
+        fi
     fi
     
     echo ""
     echo -e "${BLUE}[*] Starting full installation...${NC}"
     echo -e "${YELLOW}[*] This will take a while. Grab a coffee ☕${NC}"
+    echo -e "${YELLOW}[*] Progress will be checkpointed - safe to interrupt${NC}"
     echo ""
     
     # Install kategori satu per satu
@@ -383,6 +426,15 @@ install_all() {
     
     for category in "${CATEGORIES[@]}"; do
         current=$((current + 1))
+        
+        # Skip if before checkpoint
+        if [ $current -lt $start_from ]; then
+            continue
+        fi
+        
+        # Save checkpoint
+        echo "$current" > "$CHECKPOINT_FILE"
+        
         echo ""
         echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${CYAN}[${current}/${total}] ${category}${NC}"
@@ -394,19 +446,15 @@ install_all() {
             continue
         fi
         
-        # Verify setelah install - tapi jangan langsung fix (hemat RAM)
-        # Hanya report status
+        # Quick status check - no detailed verify (saves RAM)
         local pkg_count=$(pacman -Sgq "$category" 2>/dev/null | wc -l)
-        local installed_count=$(pacman -Sgq "$category" 2>/dev/null | while read pkg; do pacman -Qq "$pkg" 2>/dev/null && echo 1; done | wc -l)
+        local installed_count=$(pacman -T $(pacman -Sgq "$category" 2>/dev/null) 2>/dev/null | wc -l)
+        installed_count=$((pkg_count - installed_count))
         echo -e "${BLUE}  → Status: ${installed_count}/${pkg_count} installed${NC}"
-        
-        # Free memory setiap 5 kategori
-        if [ $((current % 5)) -eq 0 ]; then
-            echo -e "${YELLOW}[*] Freeing memory...${NC}"
-            sudo pacman -Sc --noconfirm &>/dev/null
-            sync
-        fi
     done
+    
+    # Remove checkpoint on completion
+    rm -f "$CHECKPOINT_FILE"
     
     echo ""
     echo -e "${GREEN}# ✓ Full installation completed!${NC}"
@@ -421,6 +469,10 @@ install_all() {
     
     echo -e "${YELLOW}[!] Use Option 4 to verify and fix missing packages${NC}"
     echo ""
+    
+    # Final cleanup flag
+    cleanup_on_exit "complete"
+    
     count_installed_tools
 }
 
