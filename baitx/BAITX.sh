@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# BL4RX - BlackArch Ultimate Installer
-# Full-featured installer with category selection and tools verification
-
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -92,7 +89,7 @@ count_available_tools() {
         sudo pacman -S blackman --noconfirm --needed
     fi
     
-    local total=$(blackman -l 2>/dev/null | wc -l)
+    local total=$(blackman -l 2>/dev/null | grep -v '^$' | wc -l)
     echo -e "${GREEN}[+] Total available tools: ${WHITE}${total}${NC}"
     echo ""
 }
@@ -112,24 +109,22 @@ show_categories() {
     echo -e "${WHITE}Available Categories:${NC}"
     echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
     
-    local col1_end=25
-    local col2_start=26
-    
+    local total_categories=${#CATEGORIES[@]}
+    local half_categories=$(((total_categories + 1) / 2))  # Pembulatan ke atas
+
     for i in "${!CATEGORIES[@]}"; do
         local num=$((i + 1))
         local category="${CATEGORIES[$i]}"
         
-        if [ $i -lt $col1_end ]; then
+        if [ $i -lt $half_categories ]; then
             printf "${GREEN}%2d${NC}) %-30s" "$num" "$category"
-            if [ $((i + 1)) -lt ${#CATEGORIES[@]} ]; then
-                local next_i=$((i + col1_end))
-                if [ $next_i -lt ${#CATEGORIES[@]} ]; then
-                    local next_num=$((next_i + 1))
-                    local next_category="${CATEGORIES[$next_i]}"
-                    printf "${GREEN}%2d${NC}) %-30s\n" "$next_num" "$next_category"
-                else
-                    echo ""
-                fi
+            
+            # Tampilkan kategori dari setengah kedua di kolom kedua
+            local second_half_i=$((i + half_categories))
+            if [ $second_half_i -lt $total_categories ]; then
+                local second_num=$((second_half_i + 1))
+                local second_category="${CATEGORIES[$second_half_i]}"
+                printf "${GREEN}%2d${NC}) %-30s\n" "$second_num" "$second_category"
             else
                 echo ""
             fi
@@ -145,9 +140,11 @@ install_with_skip() {
     local packages=$1
     local temp_log="/tmp/bl4rx_install_$(date +%s).log"
     local error_packages=()
+    local install_status=1  # Default ke gagal
     
     echo -e "${BLUE}[*] Attempting installation...${NC}"
     sudo pacman -S $packages --noconfirm --needed 2>&1 | tee "$temp_log"
+    install_status=$?
     
     # Deteksi error packages
     if grep -q "error:.*signature from.*is unknown trust" "$temp_log"; then
@@ -155,12 +152,14 @@ install_with_skip() {
         echo -e "${RED}# Signature Errors Detected${NC}"
         echo ""
         
-        while IFS= read -r pkg; do
+        while IFS= read -r line; do
+            # Ekstrak nama paket dari pesan error dengan pola yang lebih fleksibel
+            pkg=$(echo "$line" | sed -E 's/^error: ([^:]+):.*/\1/' | sed 's/://')
             if [ -n "$pkg" ]; then
                 error_packages+=("$pkg")
                 echo -e "${RED}  ✗ $pkg${NC}"
             fi
-        done < <(grep "^error:" "$temp_log" | grep "signature from" | awk '{print $2}' | sed 's/://' | sort -u)
+        done < <(grep "^error:" "$temp_log" | grep "signature from")
         
         if [ ${#error_packages[@]} -gt 0 ]; then
             echo ""
@@ -168,14 +167,15 @@ install_with_skip() {
             
             local ignore_list=$(IFS=,; echo "${error_packages[*]}")
             sudo pacman -S $packages --ignore "$ignore_list" --noconfirm --needed
+            install_status=$?
             
-            if [ $? -eq 0 ]; then
+            if [ $install_status -eq 0 ]; then
                 echo ""
                 echo -e "${GREEN}# Installation completed!${NC}"
                 echo -e "${YELLOW}[!] Skipped ${#error_packages[@]} problematic packages${NC}"
             fi
         fi
-    elif [ $? -eq 0 ]; then
+    elif [ $install_status -eq 0 ]; then
         echo ""
         echo -e "${GREEN}# ✓ Installation completed successfully!${NC}"
     fi
@@ -189,7 +189,7 @@ verify_and_fix() {
     echo -e "${YELLOW}[*] Verifying ${category}...${NC}"
     
     # Get list of packages - simpan ke file untuk efisiensi
-    local pkg_file="/tmp/baitx_pkg_${category}_$.tmp"
+    local pkg_file="/tmp/baitx_pkg_${category}_$$.tmp"
     pacman -Sgq "$category" 2>/dev/null > "$pkg_file"
     
     if [ ! -s "$pkg_file" ]; then
@@ -200,7 +200,7 @@ verify_and_fix() {
     
     local total=$(wc -l < "$pkg_file")
     local installed=0
-    local missing_file="/tmp/baitx_missing_${category}_$.tmp"
+    local missing_file="/tmp/baitx_missing_${category}_$$.tmp"
     
     # Cek installed packages - batch mode
     > "$missing_file"
@@ -232,7 +232,7 @@ verify_and_fix() {
             if [ ${#current_batch[@]} -ge $batch_size ]; then
                 echo -e "${BLUE}  → Installing batch: ${current_batch[*]}${NC}"
                 
-                if sudo pacman -S "${current_batch[@]}" --noconfirm --needed --overwrite='*' &>/dev/null; then
+                if sudo pacman -S "${current_batch[@]}" --noconfirm --needed --overwrite='/usr/share/*' &>/dev/null; then
                     success=$((success + ${#current_batch[@]}))
                     echo -e "${GREEN}    ✓ Batch installed${NC}"
                 else
@@ -243,14 +243,14 @@ verify_and_fix() {
                 current_batch=()
                 
                 # Clear pacman cache untuk hemat RAM
-                sudo pacman -Sc --noconfirm &>/dev/null
+                sudo pacman -Scc --noconfirm &>/dev/null
             fi
         done < "$missing_file"
         
         # Install sisa batch
         if [ ${#current_batch[@]} -gt 0 ]; then
             echo -e "${BLUE}  → Installing final batch: ${current_batch[*]}${NC}"
-            if sudo pacman -S "${current_batch[@]}" --noconfirm --needed --overwrite='*' &>/dev/null; then
+            if sudo pacman -S "${current_batch[@]}" --noconfirm --needed --overwrite='/usr/share/*' &>/dev/null; then
                 success=$((success + ${#current_batch[@]}))
                 echo -e "${GREEN}    ✓ Batch installed${NC}"
             else
@@ -291,7 +291,7 @@ install_all() {
     echo -e "${RED}╔════════════════════════════════════════════╗${NC}"
     echo -e "${RED}║  WARNING: FULL INSTALLATION                ║${NC}"
     echo -e "${RED}║  This will install ALL BlackArch tools!    ║${NC}"
-    echo -e "${RED}║  Required: ~60GB+ disk space               ║${NC}"
+    echo -e "${RED}║  Required: 90GB+ disk space (may vary)     ║${NC}"
     echo -e "${RED}╚════════════════════════════════════════════╝${NC}"
     echo ""
     
@@ -402,7 +402,7 @@ show_statistics() {
     
     for category in "${CATEGORIES[@]}"; do
         local count=$(pacman -Sgq "$category" 2>/dev/null | wc -l)
-        local installed=$(pacman -Sgq "$category" 2>/dev/null | while read pkg; do pacman -Qq "$pkg" 2>/dev/null; done | wc -l)
+        local installed=$(pacman -Sgq "$category" 2>/dev/null | xargs -I {} pacman -Qq {} 2>/dev/null | wc -l)
         
         printf "${GREEN}%-30s${NC} : ${WHITE}%4d${NC} tools (${CYAN}%4d${NC} installed)\n" "$category" "$count" "$installed"
     done
@@ -422,7 +422,7 @@ verify_all() {
     
     # Cari kategori yang sudah punya tools terinstall
     for category in "${CATEGORIES[@]}"; do
-        local installed=$(pacman -Sgq "$category" 2>/dev/null | while read pkg; do pacman -Qq "$pkg" 2>/dev/null && echo 1; done | wc -l)
+        local installed=$(pacman -Sgq "$category" 2>/dev/null | xargs -I {} sh -c 'pacman -Qq {} 2>/dev/null && echo 1' | wc -l)
         
         if [ "$installed" -gt 0 ]; then
             categories_to_check+=("$category")
@@ -502,3 +502,6 @@ main() {
 
 # Run
 main
+
+# NOTE clean = sudo pacman -Scc --noconfirm &>/dev/null
+# gunakan ( sudo pacman -S "${current_batch[@]}" --noconfirm --needed --overwrite='/usr/share/*' &>/dev/null ) untuk mengganti --overwrite='*' ini terlalu berisiko, bisa timpa file konfigurasi penting.
