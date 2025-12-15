@@ -133,6 +133,16 @@ fi
 sudo pacman -Sc --noconfirm
 ```
 
+intrested, whats going oon at background??
+```
+sudo tail -f /var/log/pacman.log
+```
+check pacman 
+```
+ls /var/lib/pacman/db.lck
+```
+
+
 TERMINAL VIEW ( old view )
 <img width="1807" height="1015" alt="swappy-20251211_015231" src="https://github.com/user-attachments/assets/06212003-1afc-48ff-93d2-ac7716d84de9" />
 
@@ -140,7 +150,7 @@ TERMINAL VIEW ( old view )
 
 <img width="499" height="969" alt="swappy-20251211_015817" src="https://github.com/user-attachments/assets/f287631f-8f4f-4cc1-8ee1-61f01ac780db" />
 
-NEW LOG
+NEW OUTPUT
 
 <img width="719" height="978" alt="Screenshot_20251215_205647" src="https://github.com/user-attachments/assets/01945cac-c3d6-4db2-8d48-ae2481d5a5f8" />
 
