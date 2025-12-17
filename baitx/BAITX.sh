@@ -505,3 +505,4 @@ main
 
 # NOTE clean = sudo pacman -Scc --noconfirm &>/dev/null
 # gunakan ( sudo pacman -S "${current_batch[@]}" --noconfirm --needed --overwrite='/usr/share/*' &>/dev/null ) untuk mengganti --overwrite='*' ini terlalu berisiko, bisa timpa file konfigurasi penting.
+# Terimakasiih banyak untuk Bangkit dan ardx untuk kontrib nya, wkwkkw
