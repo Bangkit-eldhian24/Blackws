@@ -97,6 +97,14 @@ NORMAL VIEW
 
 # <summary><strong>BAITX ( blackarch installer tools )</strong></summary>
 
+-----------------------------------------------------
+MY TEST
+```
+**Total tools available across all categories: 4990**
+
+**Total installed: 4837**
+```
+-----------------------------------------------------
 ## **installing**
 
 ```
