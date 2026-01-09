@@ -138,7 +138,7 @@ show_categories() {
 # Fungsi untuk install dengan skip error packages
 install_with_skip() {
     local packages=$1
-    local temp_log="/tmp/bl4rx_install_$(date +%s).log"
+    local temp_log="/tmp/baitx_install_$(date +%s).log"
     local error_packages=()
     local install_status=1  # Default ke gagal
     
@@ -470,7 +470,7 @@ main() {
                 ;;
             5)
                 echo ""
-                echo -e "${GREEN}Thanks for using BL4RX! Happy Hacking! 🚀${NC}"
+                echo -e "${GREEN}Thanks for using baitx! Happy Hacking! 🚀${NC}"
                 echo ""
                 exit 0
                 ;;
