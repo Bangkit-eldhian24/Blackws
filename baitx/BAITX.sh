@@ -89,7 +89,7 @@ count_available_tools() {
         sudo pacman -S blackman --noconfirm --needed
     fi
     
-    local total=$(blackman -l 2>/dev/null | grep -v '^$' | wc -l)
+    local total=$(blackman -l 2>/dev/null | grep -c .)
     echo -e "${GREEN}[+] Total available tools: ${WHITE}${total}${NC}"
     echo ""
 }
@@ -98,19 +98,25 @@ count_available_tools() {
 count_installed_tools() {
     echo -e "${YELLOW}[*] Counting installed BlackArch tools...${NC}"
     
-    local installed=$(pacman -Qq | grep -E '^(blackarch-|.*-git$)' | wc -l)
+    local installed=0
+    for category in "${CATEGORIES[@]}"; do
+        local category_pkgs_file="/tmp/baitx_cat_pkgs_$$.tmp"
+        pacman -Sgq "$category" 2>/dev/null > "$category_pkgs_file"
+        local cat_installed=$(comm -12 <(sort "$category_pkgs_file") <(pacman -Qq | sort) | wc -l)
+        installed=$((installed + cat_installed))
+        rm -f "$category_pkgs_file"
+    done
+    
     echo -e "${GREEN}[+] Currently installed: ${WHITE}${installed}${NC} tools"
     echo ""
 }
 
 # Fungsi untuk menampilkan kategori
 show_categories() {
-    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
     echo -e "${WHITE}Available Categories:${NC}"
-    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
     
     local total_categories=${#CATEGORIES[@]}
-    local half_categories=$(((total_categories + 1) / 2))  # Pembulatan ke atas
+    local half_categories=$(((total_categories + 1) / 2))
 
     for i in "${!CATEGORIES[@]}"; do
         local num=$((i + 1))
@@ -119,7 +125,6 @@ show_categories() {
         if [ $i -lt $half_categories ]; then
             printf "${GREEN}%2d${NC}) %-30s" "$num" "$category"
             
-            # Tampilkan kategori dari setengah kedua di kolom kedua
             local second_half_i=$((i + half_categories))
             if [ $second_half_i -lt $total_categories ]; then
                 local second_num=$((second_half_i + 1))
@@ -137,14 +142,39 @@ show_categories() {
 
 # Fungsi untuk install dengan skip error packages
 install_with_skip() {
-    local packages=$1
+    local packages_to_install=($@)
+    if [ ${#packages_to_install[@]} -eq 0 ]; then
+        echo -e "${YELLOW}[!] No packages to install.${NC}"
+        return
+    fi
+
     local temp_log="/tmp/baitx_install_$(date +%s).log"
+    local before_file="/tmp/baitx_before_$$.txt"
+    local after_file="/tmp/baitx_after_$$.txt"
+    local installed_file="/tmp/baitx_installed_$$.txt"
     local error_packages=()
-    local install_status=1  # Default ke gagal
+    local install_status=1
     
-    echo -e "${BLUE}[*] Attempting installation...${NC}"
-    sudo pacman -S $packages --noconfirm --needed 2>&1 | tee "$temp_log"
-    install_status=$?
+    # Record packages before installation
+    pacman -Qq > "$before_file"
+    
+    echo -e "${BLUE}[*] Attempting installation of: ${packages_to_install[*]}${NC}"
+    sudo pacman -S "${packages_to_install[@]}" --noconfirm --needed 2>&1 | tee "$temp_log"
+    install_status=${PIPESTATUS[0]}
+    
+    # Record packages after installation
+    pacman -Qq > "$after_file"
+    
+    # Find newly installed packages
+    comm -13 <(sort "$before_file") <(sort "$after_file") > "$installed_file"
+    
+    if [ -s "$installed_file" ]; then
+        echo -e "${GREEN}[+] Newly installed packages:${NC}"
+        while IFS= read -r pkg; do
+            echo -e "${WHITE}  - $pkg${NC}"
+        done < "$installed_file"
+        echo ""
+    fi
     
     # Deteksi error packages
     if grep -q "error:.*signature from.*is unknown trust" "$temp_log"; then
@@ -153,7 +183,6 @@ install_with_skip() {
         echo ""
         
         while IFS= read -r line; do
-            # Ekstrak nama paket dari pesan error dengan pola yang lebih fleksibel
             pkg=$(echo "$line" | sed -E 's/^error: ([^:]+):.*/\1/' | sed 's/://')
             if [ -n "$pkg" ]; then
                 error_packages+=("$pkg")
@@ -166,7 +195,7 @@ install_with_skip() {
             echo -e "${YELLOW}[*] Retrying without error packages...${NC}"
             
             local ignore_list=$(IFS=,; echo "${error_packages[*]}")
-            sudo pacman -S $packages --ignore "$ignore_list" --noconfirm --needed
+            sudo pacman -S "${packages_to_install[@]}" --ignore "$ignore_list" --noconfirm --needed
             install_status=$?
             
             if [ $install_status -eq 0 ]; then
@@ -180,15 +209,14 @@ install_with_skip() {
         echo -e "${GREEN}# ✓ Installation completed successfully!${NC}"
     fi
     
-    rm -f "$temp_log"
+    rm -f "$temp_log" "$before_file" "$after_file" "$installed_file"
 }
 
 # Fungsi untuk verifikasi dan install ulang tools yang gagal
 verify_and_fix() {
-    local category=$1
+    local category="$1"
     echo -e "${YELLOW}[*] Verifying ${category}...${NC}"
     
-    # Get list of packages - simpan ke file untuk efisiensi
     local pkg_file="/tmp/baitx_pkg_${category}_$$.tmp"
     pacman -Sgq "$category" 2>/dev/null > "$pkg_file"
     
@@ -199,83 +227,44 @@ verify_and_fix() {
     fi
     
     local total=$(wc -l < "$pkg_file")
-    local installed=0
     local missing_file="/tmp/baitx_missing_${category}_$$.tmp"
     
-    # Cek installed packages - batch mode
-    > "$missing_file"
-    while IFS= read -r pkg; do
-        if pacman -Qq "$pkg" &>/dev/null; then
-            installed=$((installed + 1))
-        else
-            echo "$pkg" >> "$missing_file"
-        fi
-    done < "$pkg_file"
+    # Efficiently find missing packages
+    comm -23 <(sort "$pkg_file") <(pacman -Qq | sort) > "$missing_file"
+    
+    local installed=$(comm -12 <(sort "$pkg_file") <(pacman -Qq | sort) | wc -l)
     
     echo -e "${BLUE}  → Status: ${installed}/${total} installed${NC}"
     
-    local missing_count=$(wc -l < "$missing_file" 2>/dev/null || echo 0)
+    local missing_count=$(grep -c . "$missing_file")
     
     if [ "$missing_count" -gt 0 ]; then
         echo -e "${YELLOW}[!] Found ${missing_count} missing packages${NC}"
         echo -e "${YELLOW}[*] Installing missing packages (batch mode)...${NC}"
         
-        local success=0
-        local failed=0
-        local batch_size=5
-        local current_batch=()
+        # Read all missing packages into an array
+        mapfile -t missing_packages < "$missing_file"
         
-        # Install dalam batch untuk hemat memory
-        while IFS= read -r pkg; do
-            current_batch+=("$pkg")
-            
-            if [ ${#current_batch[@]} -ge $batch_size ]; then
-                echo -e "${BLUE}  → Installing batch: ${current_batch[*]}${NC}"
-                
-                if sudo pacman -S "${current_batch[@]}" --noconfirm --needed --overwrite='/usr/share/*' &>/dev/null; then
-                    success=$((success + ${#current_batch[@]}))
-                    echo -e "${GREEN}    ✓ Batch installed${NC}"
-                else
-                    failed=$((failed + ${#current_batch[@]}))
-                    echo -e "${RED}    ✗ Batch failed${NC}"
-                fi
-                
-                current_batch=()
-                
-                # Clear pacman cache untuk hemat RAM
-                sudo pacman -Scc --noconfirm &>/dev/null
-            fi
-        done < "$missing_file"
-        
-        # Install sisa batch
-        if [ ${#current_batch[@]} -gt 0 ]; then
-            echo -e "${BLUE}  → Installing final batch: ${current_batch[*]}${NC}"
-            if sudo pacman -S "${current_batch[@]}" --noconfirm --needed --overwrite='/usr/share/*' &>/dev/null; then
-                success=$((success + ${#current_batch[@]}))
-                echo -e "${GREEN}    ✓ Batch installed${NC}"
-            else
-                failed=$((failed + ${#current_batch[@]}))
-                echo -e "${RED}    ✗ Batch failed${NC}"
-            fi
+        if sudo pacman -S "${missing_packages[@]}" --noconfirm --needed --overwrite='/usr/share/*'; then
+            echo ""
+            echo -e "${GREEN}  Summary: ${missing_count} re-installed successfully.${NC}"
+        else
+            echo ""
+            echo -e "${RED}  Summary: Failed to install some of the ${missing_count} missing packages.${NC}"
         fi
         
-        echo ""
-        echo -e "${GREEN}  Summary: ${success} installed, ${failed} failed${NC}"
+        sudo pacman -Scc --noconfirm &>/dev/null
     else
-        echo -e "${GREEN}  ✓ All packages installed successfully!${NC}"
+        echo -e "${GREEN}  ✓ All packages for this category are already installed!${NC}"
     fi
     
-    # Cleanup
     rm -f "$pkg_file" "$missing_file"
-    
     return 0
 }
 
 # Main Menu
 show_main_menu() {
-    echo -e "${MAGENTA}╔════════════════════════════════════════════╗${NC}"
-    echo -e "${MAGENTA}║           INSTALLATION OPTIONS             ║${NC}"
-    echo -e "${MAGENTA}╚════════════════════════════════════════════╝${NC}"
+    echo -e "${YELLOW}           INSTALLATION OPTIONS             ${NC}"
     echo ""
     echo -e "${GREEN}1)${NC} Install ALL categories (Full Arsenal)"
     echo -e "${GREEN}2)${NC} Select specific categories"
@@ -288,11 +277,9 @@ show_main_menu() {
 # Option 1: Install All
 install_all() {
     echo ""
-    echo -e "${RED}╔════════════════════════════════════════════╗${NC}"
-    echo -e "${RED}║  WARNING: FULL INSTALLATION                ║${NC}"
-    echo -e "${RED}║  This will install ALL BlackArch tools!    ║${NC}"
-    echo -e "${RED}║  Required: 90GB+ disk space (may vary)     ║${NC}"
-    echo -e "${RED}╚════════════════════════════════════════════╝${NC}"
+    echo -e "${RED}  WARNING: FULL INSTALLATION                ${NC}"
+    echo -e "${RED}  This will install ALL BlackArch tools!    ${NC}"
+    echo -e "${RED}  Required: 90GB+ disk space (may vary)     ${NC}"
     echo ""
     
     count_available_tools
@@ -308,7 +295,6 @@ install_all() {
     echo -e "${YELLOW}[*] This will take a while. Grab a coffee ☕${NC}"
     echo ""
     
-    # Install kategori satu per satu
     local total=${#CATEGORIES[@]}
     local current=0
     
@@ -318,7 +304,6 @@ install_all() {
         echo -e "${CYAN}[${current}/${total}] Installing ${category}...${NC}"
         install_with_skip "$category"
         
-        # Verify setelah install
         verify_and_fix "$category"
     done
     
@@ -373,9 +358,8 @@ select_categories() {
     echo -e "${BLUE}[*] Installing selected categories...${NC}"
     echo ""
     
-    install_with_skip "${selected_cats[*]}"
+    install_with_skip "${selected_cats[@]}"
     
-    # Verify each category
     echo ""
     echo -e "${YELLOW}[*] Verifying installations...${NC}"
     for cat in "${selected_cats[@]}"; do
@@ -389,9 +373,7 @@ select_categories() {
 # Option 3: Statistics
 show_statistics() {
     echo ""
-    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
     echo -e "${WHITE}              BLACKARCH TOOLS STATISTICS${NC}"
-    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
     echo ""
     
     count_available_tools
@@ -400,12 +382,21 @@ show_statistics() {
     echo -e "${YELLOW}[*] Categories breakdown:${NC}"
     echo ""
     
+    local installed_pkgs_file="/tmp/baitx_installed_pkgs_$$.tmp"
+    pacman -Qq > "$installed_pkgs_file"
+    
     for category in "${CATEGORIES[@]}"; do
-        local count=$(pacman -Sgq "$category" 2>/dev/null | wc -l)
-        local installed=$(pacman -Sgq "$category" 2>/dev/null | xargs -I {} pacman -Qq {} 2>/dev/null | wc -l)
+        local category_pkgs_file="/tmp/baitx_cat_pkgs_$$.tmp"
+        pacman -Sgq "$category" 2>/dev/null > "$category_pkgs_file"
+
+        local count=$(wc -l < "$category_pkgs_file")
+        local installed=$(comm -12 <(sort "$category_pkgs_file") <(sort "$installed_pkgs_file") | wc -l)
         
         printf "${GREEN}%-30s${NC} : ${WHITE}%4d${NC} tools (${CYAN}%4d${NC} installed)\n" "$category" "$count" "$installed"
+        rm -f "$category_pkgs_file"
     done
+    
+    rm -f "$installed_pkgs_file"
     
     echo ""
     echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
@@ -415,27 +406,33 @@ show_statistics() {
 # Option 4: Verify & Fix
 verify_all() {
     echo ""
-    echo -e "${YELLOW}[*] Checking installed categories...${NC}"
+    echo -e "${YELLOW}[*] Checking all installed categories for missing packages...${NC}"
     echo ""
     
+    local installed_pkgs_file="/tmp/baitx_installed_pkgs_$$.tmp"
+    pacman -Qq | grep '^blackarch' > "$installed_pkgs_file"
+
+    if [ ! -s "$installed_pkgs_file" ]; then
+        echo -e "${YELLOW}[!] No BlackArch packages seem to be installed.${NC}"
+        rm -f "$installed_pkgs_file"
+        return
+    fi
+
     local categories_to_check=()
-    
-    # Cari kategori yang sudah punya tools terinstall
     for category in "${CATEGORIES[@]}"; do
-        local installed=$(pacman -Sgq "$category" 2>/dev/null | xargs -I {} sh -c 'pacman -Qq {} 2>/dev/null && echo 1' | wc -l)
-        
-        if [ "$installed" -gt 0 ]; then
-            categories_to_check+=("$category")
+        if pacman -Sgq "$category" 2>/dev/null | grep -qf "$installed_pkgs_file"; then
+             categories_to_check+=("$category")
         fi
     done
     
     if [ ${#categories_to_check[@]} -eq 0 ]; then
-        echo -e "${YELLOW}[!] No BlackArch categories installed yet${NC}"
-        echo -e "${BLUE}[*] Use option 1 or 2 to install tools first${NC}"
+        echo -e "${YELLOW}[!] No BlackArch categories with installed tools found.${NC}"
+        echo -e "${BLUE}[*] Use option 1 or 2 to install tools first.${NC}"
+        rm -f "$installed_pkgs_file"
         return
     fi
     
-    echo -e "${GREEN}[+] Found ${#categories_to_check[@]} categories with installed tools${NC}"
+    echo -e "${GREEN}[+] Found ${#categories_to_check[@]} categories to verify.${NC}"
     echo ""
     
     for category in "${categories_to_check[@]}"; do
@@ -444,6 +441,7 @@ verify_all() {
         echo ""
     done
     
+    rm -f "$installed_pkgs_file"
     echo -e "${GREEN}[+] Verification complete!${NC}"
     echo ""
     count_installed_tools
@@ -502,7 +500,3 @@ main() {
 
 # Run
 main
-
-# NOTE clean = sudo pacman -Scc --noconfirm &>/dev/null
-# gunakan ( sudo pacman -S "${current_batch[@]}" --noconfirm --needed --overwrite='/usr/share/*' &>/dev/null ) untuk mengganti --overwrite='*' ini terlalu berisiko, bisa timpa file konfigurasi penting.
-# Terimakasiih banyak untuk Bangkit dan ardx untuk kontrib nya, wkwkkw
