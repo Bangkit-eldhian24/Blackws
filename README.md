@@ -118,25 +118,9 @@ or
 sudo install -m 755 baitx.sh /usr/local/bin/baitx
 ```
 
-## LIST
-
-<img width="749" height="1017" alt="swappy-20251211_014615" src="https://github.com/user-attachments/assets/a75b3766-a362-4a4c-ba65-8d984c55d601" />
-
 
 ## ETC / TROUBLE SHOOTING
 
-```
-# FIX 1: used file, no array
-pacman -Sgq "$category" > "$pkg_file" 
-
-# FIX 2: Batch install
-current_batch=()
-if [ ${#current_batch[@]} -ge 5 ]; then
-    sudo pacman -S "${current_batch[@]}"
-    current_batch=()
-    sudo pacman -Sc --noconfirm  # ← Clear cache!
-fi
-```
 ```
 sudo pacman -Sc --noconfirm
 ```
@@ -149,18 +133,49 @@ check pacman
 ```
 ls /var/lib/pacman/db.lck
 ```
+*Structure*
+~/baitx/
+├── checkup/
+│   ├── checkbaitx.txt          # Main log (your requested location)
+│   ├── installed_packages.txt  # Package index for fast uninstall
+│   ├── failed_packages.txt     # Failed attempts
+│   └── session_logs/           # Per-session logs
+└── backups/
+    └── pre_install_state_*.txt # System snapshots
+
+◄ 0s ◎ tree                           ⌂/baitx 22:27
+.
+├── backups
+│   ├── pre_install_state_20260204_003014_70114.txt
+│   └── pre_install_state_20260204_171021_3706.txt
+└── checkup
+    ├── checkbaitx.txt
+    ├── failed_packages.txt
+    ├── installed_packages.txt
+    ├── report_20260204_004502.txt
+    ├── report_20260204_004650.txt
+    └── session_logs
+        ├── session_20260204_001819_68995.log
+        ├── session_20260204_001843_69078.log
+        ├── session_20260204_003014_70114.log
+        ├── session_20260204_004041_72734.log
+        ├── session_20260204_171002_3532.log
+        ├── session_20260204_171021_3706.log
+        ├── session_20260209_220902_14673.log
+        ├── session_20260209_221458_15281.log
+        ├── session_20260209_221530_15415.log
+        ├── session_20260209_221557_15479.log
+        ├── session_20260209_222147_15764.log
+        ├── session_20260209_222220_16146.log
+        └── session_20260209_222403_17636.log
+
+4 directories, 20 files
 
 
-TERMINAL VIEW ( old view )
-<img width="1807" height="1015" alt="swappy-20251211_015231" src="https://github.com/user-attachments/assets/06212003-1afc-48ff-93d2-ac7716d84de9" />
+TERMINAL VIEW 
+<img width="933" height="689" alt="swappy-20260209_222332" src="https://github.com/user-attachments/assets/efad753f-c04f-48aa-ba86-4c859118b762" />
 
-<img width="1920" height="1080" alt="20251211005541" src="https://github.com/user-attachments/assets/c4216815-7370-4b3d-b6c5-7e4fb7faf5d3" />
-
-<img width="499" height="969" alt="swappy-20251211_015817" src="https://github.com/user-attachments/assets/f287631f-8f4f-4cc1-8ee1-61f01ac780db" />
-
-NEW OUTPUT
-
-<img width="719" height="978" alt="Screenshot_20251215_205647" src="https://github.com/user-attachments/assets/01945cac-c3d6-4db2-8d48-ae2481d5a5f8" />
+<img width="448" height="492" alt="swappy-20260209_222450" src="https://github.com/user-attachments/assets/584a1acc-5bba-44eb-b61f-0fb01db45fa6" />
 
 
 </details>
