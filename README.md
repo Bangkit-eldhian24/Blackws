@@ -100,9 +100,7 @@ NORMAL VIEW
 -----------------------------------------------------
 MY TEST
 ```
-**Total tools available across all categories: 4990**
-
-**Total installed: 4837**
+nigga
 ```
 -----------------------------------------------------
 ## **installing**
