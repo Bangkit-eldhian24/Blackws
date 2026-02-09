@@ -134,6 +134,7 @@ check pacman
 ls /var/lib/pacman/db.lck
 ```
 *Structure*
+```
 ~/baitx/
 ├── checkup/
 │   ├── checkbaitx.txt          # Main log (your requested location)
@@ -170,6 +171,7 @@ ls /var/lib/pacman/db.lck
         └── session_20260209_222403_17636.log
 
 4 directories, 20 files
+```
 
 
 TERMINAL VIEW 
