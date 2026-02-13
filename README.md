@@ -8,6 +8,10 @@ I USED TO FOR MY OWN ARCH DISTRIBUTION, SO YEAH..
 
 INSPIRED AND THANKS FOR [BLACKARCH](https://blackarch.org/index.html)
 
+> [!IMPORTANT]  
+> Prefer to use baitx, than blackws. thx
+
+
 <details>
   <summary>BLACKWS WEBSEC installer</summary>
 
